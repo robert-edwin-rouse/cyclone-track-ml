@@ -19,14 +19,14 @@ class convolution_block(nn.Module):
     SiLU activation.
     """
 
-    def __init__(self, input_channels, output_channels, kernel_size=3, padding=1):
+    def __init__(self, input_channels, output_channels):
         super().__init__()
         self.block = nn.Sequential(
-            nn.Conv2d(input_channels, output_channels,
-                      kernel_size=kernel_size, padding=padding, bias=False),
+            nn.Conv2d(input_channels, output_channels, kernel_size=3, 
+                      padding=1, bias=False),
             nn.BatchNorm2d(output_channels),
-            nn.Conv2d(output_channels, output_channels,
-                      kernel_size=kernel_size, padding=padding, bias=False),
+            nn.Conv2d(output_channels, output_channels, kernel_size=3, 
+                      padding=1, bias=False),
             nn.BatchNorm2d(output_channels),
             nn.SiLU(inplace=True)
         )
