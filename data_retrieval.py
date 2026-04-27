@@ -64,7 +64,7 @@ ds_all = xr.open_mfdataset(
     parallel=True,
     coords="minimal",
     data_vars="all",
-    chunks={}
+    chunks="auto",
 )
 ds_all.to_netcdf(config.pressure_path)
 ds_all.close()
@@ -80,7 +80,7 @@ ds_all = xr.open_mfdataset(
     parallel=True,
     coords="minimal",
     data_vars="all",
-    chunks={}
+    chunks="auto",
 )
 ds_all.to_netcdf(config.surface_path)
 ds_all.close()
