@@ -13,37 +13,45 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import dask.array as darray
+import config
+
+
+# =============================================================================
+# Load in ERA5 data
+# =============================================================================
+pressure_data = xr.open_dataset(config.pressure_path,
+                                 engine="h5netcdf",
+                                 chunks="auto",)
+pressure_vars = pressure_data[[config.pressure_var_codes]]
+pressure_array = pressure_vars.to_array(dim="var")
+pressure_array = pressure_array.transpose("valid_time", "latitude", 
+                                          "longitude", "var", "pressure_level")
+pressure_array = pressure_array.stack(channel=("var", "pressure_level"))
+
+
+surface_array = xr.open_dataset(config.surface_path,
+                                 engine="h5netcdf",
+                                 chunks="auto",)
+
+
+
+
+
+# =============================================================================
+# Transform SST using land-temperature mask
+# =============================================================================
 
 
 
 
 
 
+# =============================================================================
+# Unedited code below
+# =============================================================================
 
 
 
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-# STEP 1: Open ERA5 pressure‐level file with sensible Dask chunks
-# -----------------------------------------------------------------------------
-ds = xr.open_dataset(
-    "1980_2000_combined_pl.nc",
-    engine="h5netcdf",
-    chunks="auto",
-)
-
-# -----------------------------------------------------------------------------
-# STEP 3: Stack five vars + all pressure levels into one “channel” axis
-# -----------------------------------------------------------------------------
-vars5 = ds[["vo", "r", "u", "v", "t"]]
-da = vars5.to_array(dim="var")  
-da = da.transpose("valid_time", "latitude", "longitude", "var", "pressure_level")
-da = da.stack(channel=("var", "pressure_level"))
 
 # -----------------------------------------------------------------------------
 # STEP 4: Load & downsample your single‐level file the same way

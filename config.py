@@ -35,9 +35,11 @@ days = [x for x in range(1,32)]
 hours = [6*x for x in range(0,4)]
 
 surface_dataset = "reanalysis-era5-single-levels"
-surface_variables = ["sea_surface_temperature",
+surface_variables = ["2m_temperature",
+                     "sea_surface_temperature",
                      "land_sea_mask"]
-surface_path = 'era5_surface_data.nc'
+surface_var_codes = ["","","",""]
+surface_path = "era5_surface_data.nc"
 
 pressure_dataset = "reanalysis-era5-pressure-levels"
 pressure_levels = [1000, 750, 500]
@@ -46,7 +48,8 @@ pressure_variables = ["relative_humidity",
                       "u_component_of_wind",
                       "v_component_of_wind",
                       "vorticity"]
-pressure_path = 'era5_pressure_data.nc'
+pressure_var_codes = ["r","t","u","v","vo"]
+pressure_path = "era5_pressure_data.nc"
 
 
 # =============================================================================

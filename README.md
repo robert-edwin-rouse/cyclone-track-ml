@@ -35,7 +35,7 @@ file.
 1. Clone the repository:
 ```sh
 git clone https://github.com/robert-edwin-rouse/cyclone-track-ml.git
-cd lethal-heat
+cd cyclone-track-ml
 ```
 
 2. Install the dependencies. We recommend doing this from within a virtual environment, e.g.
