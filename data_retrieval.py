@@ -26,9 +26,8 @@ for year in config.years:
             "pressure_level": config.pressure_levels,
             "data_format": "netcdf",
             "download_format": "unarchived",
-            "area": config.lon_lat_extents
+            "area": config.lat_lon
         }
-    
         filename = os.path.join(data_dir, f"era5_pressure_{year}_{month}.nc")
         client.retrieve(config.pressure_dataset, request).download(filename)
 
@@ -44,9 +43,8 @@ for year in config.years:
             "time": config.hours,
             "data_format": "netcdf",
             "download_format": "unarchived",
-            "area": config.lon_lat_extents
+            "area": config.lat_lon
         }
-    
         filename = os.path.join(data_dir, f"era5_surface_{year}_{month}.nc")
         client.retrieve(config.surface_dataset, request).download(filename)
 
