@@ -59,9 +59,9 @@ grid_res = 1/125
 area_growth_factor = 3
 
 lifestages = ['Storm - Nondeveloping',
+              'Cyclolysis',
               'Cyclogenesis',
-              'Active Cyclone',
-              'Cyclolysis']
+              'Active Cyclone',]
 output_resolution = 0.125
 
 
