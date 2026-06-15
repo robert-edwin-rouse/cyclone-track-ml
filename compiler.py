@@ -15,18 +15,20 @@ import config
 # =============================================================================
 # Load in ERA5 data
 # =============================================================================
-pressure_data = xr.open_dataset(config.pressure_path,
+pressure_data = xr.open_dataset('haiyan_pressure.nc',
+                                # config.pressure_path,
                                 engine='h5netcdf',
-                                chunks='auto',)
+                                chunks={'valid_time': 20})
 pressure_vars = pressure_data[config.pressure_var_codes]
 pressure_array = pressure_vars.to_array(dim='var')
 pressure_array = pressure_array.transpose('valid_time', 'latitude',
                                           'longitude', 'var', 'pressure_level')
 pressure_array = pressure_array.stack(channel=('var', 'pressure_level'))
 
-surface_array = xr.open_dataset(config.surface_path,
+surface_array = xr.open_dataset('haiyan_surface.nc',
+                                # config.surface_path,
                                 engine='h5netcdf',
-                                chunks='auto',)
+                                chunks={'valid_time': 20})
 
 
 # =============================================================================
@@ -141,63 +143,181 @@ def latlon_to_pix(lat, lon, lat_max, lon_min, img_lat, img_lon, pixels):
     return x, y
 
 def cyclone_segmentation(cyclones, times, class_map):
+    """
+    Create cyclone masks as a dask-backed xarray.DataArray chunked along time.
+    This builds mask blocks per time-chunk (using the module-level t_chunks
+    from the ERA5 pressure array) via dask.delayed so the resulting DataArray
+    has the same time-chunking as `pressure_array`.
+    """
+    from dask import delayed
+
     pixels = 1 / config.output_resolution
     img_lat = int(abs(config.lat_lon[0] - config.lat_lon[2]) * pixels)
     img_lon = int(abs(config.lat_lon[1] - config.lat_lon[3]) * pixels)
-    storm_masks = np.zeros((len(times), img_lat, img_lon), dtype=np.uint8)
 
     latitudes = np.linspace(lat_max, lat_min, img_lat)
     longitudes = np.linspace(lon_min, lon_max, img_lon)
 
-
-    lat_scale = img_lat / (lat_max - lat_min)
-    lon_scale = img_lon / (lon_max - lon_min)
-
     grouped = cyclones.groupby('ISO_TIME')
-    time_to_idx = {t: i for i, t in enumerate(times)}
+    groups_dict = {pd.Timestamp(ts): grp for ts, grp in grouped}
 
-    for ts, group in grouped:
-        if pd.Timestamp(ts) not in time_to_idx:
-            try:
-                idx = times.get_loc(pd.to_datetime(ts))
-            except Exception:
-                continue
-        else:
-            idx = time_to_idx[pd.Timestamp(ts)]
+    try:
+        time_chunks = tuple(t_chunks)
+    except Exception:
+        time_chunks = (len(times),)
 
-        mask = storm_masks[idx]
+    delayed_blocks = []
+    start = 0
+    for block_len in time_chunks:
+        end = start + block_len
 
-        for _, row in group.iterrows():
-            lat = float(row['LAT'])
-            lon = float(row['LON'])
-            radius_deg = float(row.get('Grid_Radius', 0.0))
-            class_label = class_map.get(row['Classification'], 0)
+        @delayed
+        def _compute_block(s=start, e=end):
+            block = np.zeros((e - s, img_lat, img_lon), dtype=np.uint8)
+            for ti in range(s, e):
+                t = pd.Timestamp(times[ti])
+                if t not in groups_dict:
+                    continue
+                grp = groups_dict[t]
+                mask = block[ti - s]
+                for _, row in grp.iterrows():
+                    lat = float(row['LAT'])
+                    lon = float(row['LON'])
+                    radius_deg = float(row.get('Grid_Radius', 0.0))
+                    class_label = class_map.get(row['Classification'], 0)
 
-            cx, cy = latlon_to_pix(lat, lon, lat_max, lon_min, img_lat, img_lon, pixels)
-            r_pix = max(1, int(round(radius_deg * pixels)))
+                    cx, cy = latlon_to_pix(lat, lon, lat_max, lon_min,
+                                           img_lat, img_lon, pixels)
+                    r_pix = max(1, int(round(radius_deg * pixels)))
 
-            y0 = max(0, cy - r_pix)
-            y1 = min(img_lat, cy + r_pix + 1)
-            x0 = max(0, cx - r_pix)
-            x1 = min(img_lon, cx + r_pix + 1)
+                    y0 = max(0, cy - r_pix)
+                    y1 = min(img_lat, cy + r_pix + 1)
+                    x0 = max(0, cx - r_pix)
+                    x1 = min(img_lon, cx + r_pix + 1)
 
-            yy = np.arange(y0, y1)[:, None]
-            xx = np.arange(x0, x1)[None, :]
-            dist2 = (xx - cx) ** 2 + (yy - cy) ** 2
-            circular = dist2 <= (r_pix ** 2)
+                    yy = np.arange(y0, y1)[:, None]
+                    xx = np.arange(x0, x1)[None, :]
+                    dist2 = (xx - cx) ** 2 + (yy - cy) ** 2
+                    circular = dist2 <= (r_pix ** 2)
 
-            sub = mask[y0:y1, x0:x1]
-            sub[circular] = np.maximum(sub[circular], class_label)
-            mask[y0:y1, x0:x1] = sub
+                    sub = mask[y0:y1, x0:x1]
+                    sub[circular] = np.maximum(sub[circular], class_label)
+                    mask[y0:y1, x0:x1] = sub
 
-        storm_masks[idx] = mask
+                block[ti - s] = mask
+            return block
 
+        delayed_blocks.append(_compute_block())
+        start = end
+
+    dask_blocks = []
+    start = 0
+    for db, block_len in zip(delayed_blocks, time_chunks):
+        shape = (block_len, img_lat, img_lon)
+        dask_blocks.append(darray.from_delayed(db, shape=shape, dtype=np.uint8))
+        start += block_len
+
+    masks_dask = darray.concatenate(dask_blocks, axis=0)
+    label_values = [0] + sorted({int(v) for v in class_map.values()})
+    one_hot_layers = [(masks_dask == lv).astype('float32') for lv in label_values]
+    one_hot_dask = darray.stack(one_hot_layers, axis=3)
+    channel_coords = np.array(label_values, dtype=np.int64)
     mask_da = xr.DataArray(
-        storm_masks,
-        dims=('time', 'latitude', 'longitude'),
-        coords={'time': times, 'latitude': latitudes, 'longitude': longitudes},
-        name='cyclone_mask'
+        one_hot_dask,
+        dims=('valid_time', 'latitude', 'longitude', 'channel'),
+        coords={
+            'valid_time': times,
+            'latitude': latitudes,
+            'longitude': longitudes,
+            'channel': channel_coords,
+        },
+        name='cyclone_masks_onehot'
     )
-    mask_da.attrs['class_map'] = class_map
+
+    full_class_map = {0: 'Background'}
+    for name, lbl in class_map.items():
+        full_class_map[int(lbl)] = name
+    mask_da.attrs['class_map'] = full_class_map
+    mask_da.attrs['channel_labels'] = list(channel_coords.tolist())
 
     return mask_da
+
+
+storm_masks = cyclone_segmentation(cyclones, times, class_map)
+
+
+# =============================================================================
+# Merge input-output labels
+# =============================================================================
+storm_masks = storm_masks.rename({'latitude': 'label_latitude',
+                                  'longitude': 'label_longitude',
+                                  'channel': 'label_channel'})
+full_ds = xr.Dataset({"inputs": pressure_array, "labels": storm_masks})
+
+
+# # Train/Val split (90/10) along time
+# N = full_ds.dims["time"]
+# rng = np.random.default_rng(42)
+# perm = rng.permutation(N)
+# n_tr = int(0.9 * N)
+# train_idx = perm[:n_tr]
+# val_idx   = perm[n_tr:]
+
+# train_ds = full_ds.isel(time=train_idx)
+# val_ds   = full_ds.isel(time=val_idx)
+
+# print("Train/Val time sizes:", train_ds.dims["time"], val_ds.dims["time"])
+
+
+
+# def normalize_features(X_train, X_val, normalize_channels=None):
+#     """
+#     Normalise features using training statistics. (for precipitation)
+    
+#     Args:
+#         X_train: Training features tensor
+#         X_val: Validation features tensor
+#         normalize_channels: List of channel indices to normalise (None = normalise first 11)
+    
+#     Returns:
+#         Normalised X_train, X_val, normalisation statistics
+#     """
+#     if normalize_channels is None:
+#         normalize_channels = config.NORMALIZE_CHANNELS_FIRST_11
+    
+#     # Extract channels to normalise
+#     X_train_normalized = X_train[:, normalize_channels, :, :]
+    
+#     # Compute per-feature min, max and mean
+#     xmin_train = torch.amin(X_train_normalized, dim=(0, 2, 3)).view(1, -1, 1, 1)
+#     xmax_train = torch.amax(X_train_normalized, dim=(0, 2, 3)).view(1, -1, 1, 1)
+#     xavg_train = torch.mean(X_train_normalized, dim=(0, 2, 3)).view(1, -1, 1, 1)
+    
+#     # Normalise training data
+#     X_train_normalized = (X_train_normalized - xavg_train) / (xmax_train - xmin_train)
+    
+#     # Combine normalised channels with unnormalised channels
+#     if len(normalize_channels) == X_train.shape[1]:
+#         X_train = X_train_normalized
+#     else:
+#         # Keep other channels unchanged
+#         other_channels = [i for i in range(X_train.shape[1]) if i not in normalize_channels]
+#         X_train = torch.cat((X_train_normalized, X_train[:, other_channels, :, :]), dim=1)
+    
+#     # Apply same normalisation to validation data
+#     X_val_normalized = X_val[:, normalize_channels, :, :]
+#     X_val_normalized = (X_val_normalized - xavg_train) / (xmax_train - xmin_train)
+    
+#     if len(normalize_channels) == X_val.shape[1]:
+#         X_val = X_val_normalized
+#     else:
+#         X_val = torch.cat((X_val_normalized, X_val[:, other_channels, :, :]), dim=1)
+    
+#     norm_stats = {
+#         'xmin': xmin_train,
+#         'xmax': xmax_train,
+#         'xavg': xavg_train,
+#         'normalize_channels': normalize_channels
+#     }
+    
+#     return X_train, X_val, norm_stats

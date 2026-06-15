@@ -64,6 +64,10 @@ lifestages = ['Storm - Nondeveloping',
               'Active Cyclone',]
 output_resolution = 0.125
 
+train_set_percent = 0.75
+valid_set_percent = 0.05
+test_set_percent = 0.2
+
 
 # =============================================================================
 # Training & Model Configuration
