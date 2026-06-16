@@ -11,6 +11,7 @@ import numpy as np
 import dask.array as darray
 import config
 import os
+import shutil
 
 
 # =============================================================================
@@ -60,8 +61,10 @@ pressure_array = pressure_array.astype('float32')
 sst_mask = sst_mask.astype('float32')
 sst = sst.astype('float32')
 
+n_pressure_ch = pressure_array.sizes['channel']
 pressure_array = pressure_array.assign_coords(
-    channel=pressure_array.channel.values)
+    channel=np.arange(n_pressure_ch, dtype=np.int64))
+
 sst_mask = sst_mask.assign_coords(channel=np.array([-2], dtype=np.int64))
 sst = sst.assign_coords(channel=np.array([-1], dtype=np.int64))
 
@@ -302,11 +305,42 @@ normalization_cache = {
     'stats': normalisation_stats,
 }
 
-def save_ds_splits_to_zarr(train_ds, valid_ds, test_ds, base_dir):
+def save_ds_splits_to_zarr(train, valid, test, base_dir):
     os.makedirs(base_dir, exist_ok=True)
-    train.to_zarr(os.path.join(config.data_dir, 'train_data.zarr'), mode="w")
-    valid.to_zarr(os.path.join(config.data_dir, 'valid_data.zarr'), mode="w")
-    test.to_zarr(os.path.join(config.data_dir, 'test_data.zarr'), mode="w")
+
+    for filename, ds in [
+        ("train_data.zarr", train),
+        ("valid_data.zarr", valid),
+        ("test_data.zarr", test),
+    ]:
+        path = os.path.join(base_dir, filename)
+        if os.path.exists(path):
+            shutil.rmtree(path)
+
+        # Extract raw data and rebuild completely from scratch
+        inputs_data = ds['inputs'].data
+        labels_data = ds['labels'].data
+        
+        # Build with only numeric coordinates, no index variables
+        ds_clean = xr.Dataset(
+            {
+                'inputs': (('valid_time', 'latitude', 'longitude', 'channel'), inputs_data),
+                'labels': (('valid_time', 'label_latitude', 'label_longitude', 'label_channel'), labels_data),
+            },
+            coords={
+                'valid_time': np.arange(len(ds['valid_time']), dtype=np.float32),
+                'latitude': ds['latitude'].values.astype(np.float32),
+                'longitude': ds['longitude'].values.astype(np.float32),
+                'channel': ds['channel'].values.astype(np.int64),
+                'label_latitude': ds['label_latitude'].values.astype(np.float32),
+                'label_longitude': ds['label_longitude'].values.astype(np.float32),
+                'label_channel': ds['label_channel'].values.astype(np.int64),
+            }
+        )
+        
+        # Rechunk to uniform sizes for Zarr compatibility
+        ds_clean = ds_clean.chunk({'valid_time': 20, 'latitude': 721, 'longitude': 1440, 'channel': 17})
+        ds_clean.to_zarr(path, mode="w")
 
 
 save_ds_splits_to_zarr(train, valid, test, config.data_dir)

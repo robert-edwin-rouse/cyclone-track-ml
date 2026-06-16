@@ -22,10 +22,10 @@ class convolution_block(nn.Module):
     def __init__(self, input_channels, output_channels):
         super().__init__()
         self.block = nn.Sequential(
-            nn.Conv2d(input_channels, output_channels, kernel_size=3, 
+            nn.Conv2d(input_channels, output_channels, kernel_size=3,
                       padding=1, bias=False),
             nn.BatchNorm2d(output_channels),
-            nn.Conv2d(output_channels, output_channels, kernel_size=3, 
+            nn.Conv2d(output_channels, output_channels, kernel_size=3,
                       padding=1, bias=False),
             nn.BatchNorm2d(output_channels),
             nn.SiLU(inplace=True)
@@ -83,7 +83,7 @@ class U_Net(nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.encoder_1 = downsampling_block(3, 64)
+        self.encoder_1 = downsampling_block(17, 64)
         self.encoder_2 = downsampling_block(64, 128)
         self.encoder_3 = downsampling_block(128, 256)
         self.encoder_4 = downsampling_block(256, 512)
@@ -95,7 +95,7 @@ class U_Net(nn.Module):
         self.decoder_3 = upsampling_block(256, 128)
         self.decoder_4 = upsampling_block(128, 64)
 
-        self.output_layer = nn.Conv2d(64, 1, kernel_size=1)
+        self.output_layer = nn.Conv2d(64, 5, kernel_size=1)
 
     def forward(self, x):
         x1, p1 = self.encoder_1(x)

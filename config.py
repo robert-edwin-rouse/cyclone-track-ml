@@ -73,8 +73,9 @@ test_set_percent = 0.2
 # Training & Model Configuration
 # =============================================================================
 optimiser = optim.AdamW
-epochs = 1024
-batch_size = 32
+epochs = 64
+batch_size = 8
+num_workers = 4
 learning_rate = 0.0001
 weight_decay = 1e-5
 dropout = 0.1
