@@ -69,10 +69,11 @@ class upsampling_block(nn.Module):
        )
 
     def forward(self, x, skip_connection):
-      x = self.up_convolution(x)
-      x = torch.cat([x, skip_connection], axis=1)
-      x = self.convolution_block(x)
-      return x
+        x = self.up_convolution(x)
+        skip_connection = skip_connection[:, :, :x.shape[2], :x.shape[3]]
+        x = torch.cat([x, skip_connection], axis=1)
+        x = self.convolution_block(x)
+        return x
 
 
 class U_Net(nn.Module):
