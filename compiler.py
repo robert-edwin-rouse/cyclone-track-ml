@@ -17,8 +17,8 @@ import shutil
 # =============================================================================
 # Load in ERA5 data
 # =============================================================================
-pressure_data = xr.open_dataset('haiyan_pressure.nc',
-                                # config.pressure_path,
+pressure_data = xr.open_dataset(  # 'haiyan_pressure.nc',
+                                config.pressure_path,
                                 engine='h5netcdf',
                                 chunks={'valid_time': 20})
 pressure_vars = pressure_data[config.pressure_var_codes]
@@ -27,8 +27,8 @@ pressure_array = pressure_array.transpose('valid_time', 'latitude',
                                           'longitude', 'var', 'pressure_level')
 pressure_array = pressure_array.stack(channel=('var', 'pressure_level'))
 
-surface_array = xr.open_dataset('haiyan_surface.nc',
-                                # config.surface_path,
+surface_array = xr.open_dataset(  # 'haiyan_surface.nc',
+                                config.surface_path,
                                 engine='h5netcdf',
                                 chunks={'valid_time': 20})
 
