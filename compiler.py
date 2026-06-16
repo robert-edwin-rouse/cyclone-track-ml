@@ -10,6 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import dask.array as darray
 import config
+import os
 
 
 # =============================================================================
@@ -48,24 +49,25 @@ sst = (sst.expand_dims(channel=[-1], axis=-1).
 # Chunk data
 # =============================================================================
 t_chunks, y_chunks, x_chunks, _ = pressure_array.chunks
-n_channel = pressure_array.sizes['channel']
+n_channel = pressure_array.sizes['channel'] + sst.sizes['channel'] + \
+    sst_mask.sizes['channel']
 chunk_dict = {'valid_time': t_chunks,
               'latitude':   y_chunks,
               'longitude':  x_chunks,
               'channel':    n_channel, }
 
-pressure_array = pressure_array.astype('float32').chunk(chunk_dict)
-sst_mask = sst_mask.astype('float32').chunk(chunk_dict)
-sst = sst.astype('float32').chunk(chunk_dict)
+pressure_array = pressure_array.astype('float32')
+sst_mask = sst_mask.astype('float32')
+sst = sst.astype('float32')
 
 pressure_array = pressure_array.assign_coords(
     channel=pressure_array.channel.values)
 sst_mask = sst_mask.assign_coords(channel=np.array([-2], dtype=np.int64))
 sst = sst.assign_coords(channel=np.array([-1], dtype=np.int64))
 
-pressure_array = xr.concat([pressure_array, sst_mask, sst],
-                           dim='channel', coords='minimal',
-                           join='exact', compat='override',)
+feature_array = xr.concat([pressure_array, sst_mask, sst],
+                          dim='channel', coords='minimal',
+                          join='exact', compat='override',).chunk(chunk_dict)
 
 
 # =============================================================================
@@ -101,19 +103,19 @@ def lifestage(sequence, labels, threshold):
         if val >= threshold:
             last_threshold_cross = i
     if last_threshold_cross == -1:
-        return [labels[0]] * len(values)
+        return [labels[1]] * len(values)
     result = []
     seen_above_threshold = False
     for i, val in enumerate(values):
         if val >= threshold:
             seen_above_threshold = True
-            result.append(labels[1])
-        elif not seen_above_threshold:
-            result.append(labels[0])
-        elif i > last_threshold_cross:
             result.append(labels[2])
-        else:
+        elif not seen_above_threshold:
             result.append(labels[1])
+        elif i > last_threshold_cross:
+            result.append(labels[0])
+        else:
+            result.append(labels[2])
     return result
 
 
@@ -143,12 +145,6 @@ def latlon_to_pix(lat, lon, lat_max, lon_min, img_lat, img_lon, pixels):
     return x, y
 
 def cyclone_segmentation(cyclones, times, class_map):
-    """
-    Create cyclone masks as a dask-backed xarray.DataArray chunked along time.
-    This builds mask blocks per time-chunk (using the module-level t_chunks
-    from the ERA5 pressure array) via dask.delayed so the resulting DataArray
-    has the same time-chunking as `pressure_array`.
-    """
     from dask import delayed
 
     pixels = 1 / config.output_resolution
@@ -247,77 +243,70 @@ storm_masks = cyclone_segmentation(cyclones, times, class_map)
 
 
 # =============================================================================
-# Merge input-output labels
+# Merge input-output labels and write to zarr
 # =============================================================================
 storm_masks = storm_masks.rename({'latitude': 'label_latitude',
                                   'longitude': 'label_longitude',
                                   'channel': 'label_channel'})
-full_ds = xr.Dataset({"inputs": pressure_array, "labels": storm_masks})
+full_ds = xr.Dataset({"inputs": feature_array, "labels": storm_masks})
 
 
-# # Train/Val split (90/10) along time
-# N = full_ds.dims["time"]
-# rng = np.random.default_rng(42)
-# perm = rng.permutation(N)
-# n_tr = int(0.9 * N)
-# train_idx = perm[:n_tr]
-# val_idx   = perm[n_tr:]
-
-# train_ds = full_ds.isel(time=train_idx)
-# val_ds   = full_ds.isel(time=val_idx)
-
-# print("Train/Val time sizes:", train_ds.dims["time"], val_ds.dims["time"])
+def _split_indices(num_items, train_frac, valid_frac, test_frac):
+    n_train = int(num_items * train_frac)
+    n_valid = int(num_items * valid_frac)
+    n_test = num_items - n_train - n_valid
+    if n_test < 0:
+        raise ValueError(
+            f"Invalid split fractions: {train_frac}, {valid_frac}, {test_frac}"
+        )
+    idx = np.arange(num_items)
+    return idx[:n_train], idx[n_train:n_train + n_valid], idx[n_train + n_valid:]
 
 
+def _compute_normalisation_stats(train_inputs):
+    axes = ('valid_time', 'latitude', 'longitude')
+    stats = xr.Dataset({
+        'min': train_inputs.min(dim=axes).compute(),
+        'max': train_inputs.max(dim=axes).compute(),
+        'mean': train_inputs.mean(dim=axes).compute(),
+    })
+    stats['range'] = stats['max'] - stats['min']
+    stats['range'] = stats['range'].where(stats['range'] != 0, 1.0)
+    return stats
 
-# def normalize_features(X_train, X_val, normalize_channels=None):
-#     """
-#     Normalise features using training statistics. (for precipitation)
-    
-#     Args:
-#         X_train: Training features tensor
-#         X_val: Validation features tensor
-#         normalize_channels: List of channel indices to normalise (None = normalise first 11)
-    
-#     Returns:
-#         Normalised X_train, X_val, normalisation statistics
-#     """
-#     if normalize_channels is None:
-#         normalize_channels = config.NORMALIZE_CHANNELS_FIRST_11
-    
-#     # Extract channels to normalise
-#     X_train_normalized = X_train[:, normalize_channels, :, :]
-    
-#     # Compute per-feature min, max and mean
-#     xmin_train = torch.amin(X_train_normalized, dim=(0, 2, 3)).view(1, -1, 1, 1)
-#     xmax_train = torch.amax(X_train_normalized, dim=(0, 2, 3)).view(1, -1, 1, 1)
-#     xavg_train = torch.mean(X_train_normalized, dim=(0, 2, 3)).view(1, -1, 1, 1)
-    
-#     # Normalise training data
-#     X_train_normalized = (X_train_normalized - xavg_train) / (xmax_train - xmin_train)
-    
-#     # Combine normalised channels with unnormalised channels
-#     if len(normalize_channels) == X_train.shape[1]:
-#         X_train = X_train_normalized
-#     else:
-#         # Keep other channels unchanged
-#         other_channels = [i for i in range(X_train.shape[1]) if i not in normalize_channels]
-#         X_train = torch.cat((X_train_normalized, X_train[:, other_channels, :, :]), dim=1)
-    
-#     # Apply same normalisation to validation data
-#     X_val_normalized = X_val[:, normalize_channels, :, :]
-#     X_val_normalized = (X_val_normalized - xavg_train) / (xmax_train - xmin_train)
-    
-#     if len(normalize_channels) == X_val.shape[1]:
-#         X_val = X_val_normalized
-#     else:
-#         X_val = torch.cat((X_val_normalized, X_val[:, other_channels, :, :]), dim=1)
-    
-#     norm_stats = {
-#         'xmin': xmin_train,
-#         'xmax': xmax_train,
-#         'xavg': xavg_train,
-#         'normalize_channels': normalize_channels
-#     }
-    
-#     return X_train, X_val, norm_stats
+
+# Split the full dataset according to config fractions.
+num_times = full_ds.sizes['valid_time']
+train_idx, valid_idx, test_idx = _split_indices(
+    num_times,
+    config.train_set_percent,
+    config.valid_set_percent,
+    config.test_set_percent,
+)
+
+train_ds_raw = full_ds.isel(valid_time=train_idx)
+normalisation_stats = _compute_normalisation_stats(train_ds_raw['inputs'])
+
+full_ds['inputs'] = (
+    full_ds['inputs'] - normalisation_stats['mean']
+) / normalisation_stats['range']
+
+train = full_ds.isel(valid_time=train_idx)
+valid = full_ds.isel(valid_time=valid_idx)
+test = full_ds.isel(valid_time=test_idx)
+
+normalization_cache = {
+    'train_idx': train_idx,
+    'valid_idx': valid_idx,
+    'test_idx': test_idx,
+    'stats': normalisation_stats,
+}
+
+def save_ds_splits_to_zarr(train_ds, valid_ds, test_ds, base_dir):
+    os.makedirs(base_dir, exist_ok=True)
+    train.to_zarr(os.path.join(config.data_dir, 'train_data.zarr'), mode="w")
+    valid.to_zarr(os.path.join(config.data_dir, 'valid_data.zarr'), mode="w")
+    test.to_zarr(os.path.join(config.data_dir, 'test_data.zarr'), mode="w")
+
+
+save_ds_splits_to_zarr(train, valid, test, config.data_dir)
