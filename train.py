@@ -19,13 +19,11 @@ import os
 # =============================================================================
 class CycloneDataset(Dataset):
     """
-    PyTorch Dataset for loading cyclone segmentation data from xarray Datasets.
+    Pending.
     """
-
     def __init__(self, xarray_ds):
         """
-        Args:
-            xarray_ds: xarray.Dataset with 'inputs' and 'labels' variables
+        Pending
         """
         self.inputs = xarray_ds['inputs'].data  # Dask arrays
         self.labels = xarray_ds['labels'].data
