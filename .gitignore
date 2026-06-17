@@ -1,0 +1,3 @@
+*.pt
+.cdsapirc
+venv/
