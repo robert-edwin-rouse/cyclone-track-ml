@@ -1,0 +1,87 @@
+Loading train, valid, test datasets from zarr...
+Train dataset shape: (270, 721, 1440, 17)
+Valid dataset shape: (18, 721, 1440, 17)
+Test dataset shape: (72, 721, 1440, 17)
+
+Creating PyTorch DataLoaders...
+Train batches: 34
+Valid batches: 3
+Test batches: 9
+
+Initializing model...
+Model on device: cuda
+
+Training for 64 epochs...
+Epoch 1/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 2/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 3/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 4/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 5/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 6/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 7/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 8/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 9/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 10/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 11/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 12/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 13/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 14/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 15/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 16/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 17/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 18/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 19/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 20/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 21/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 22/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 23/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 24/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 25/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 26/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 27/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 28/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 29/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 30/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 31/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 32/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 33/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 34/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 35/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 36/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 37/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 38/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 39/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 40/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 41/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 42/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 43/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 44/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 45/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 46/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 47/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 48/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 49/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 50/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 51/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 52/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 53/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 54/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 55/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 56/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 57/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 58/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 59/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 60/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 61/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 62/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 63/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+Epoch 64/64 -> Training Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}
+
+Training complete!
+
+Evaluating on test set...
+Test Loss: 0.030376
+Test Accuracy: 0.9988
+
+Saving model to cyclone-detect-ml.pt...
+Model saved!
