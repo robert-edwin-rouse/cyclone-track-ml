@@ -5,6 +5,7 @@
 import cdsapi
 import xarray as xr
 import os
+from pathlib import Path
 import config
 
 
@@ -12,7 +13,7 @@ import config
 # Download ERA5 data by month and year
 # =============================================================================
 client = cdsapi.Client()
-data_dir = config.era5_data_dir
+data_dir = Path(config.era5_data_dir)
 
 for year in config.years:
     for month in config.months:
