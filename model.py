@@ -97,6 +97,7 @@ class U_Net(nn.Module):
         self.decoder_4 = upsampling_block(128, 64)
 
         self.output_layer = nn.Conv2d(64, 5, kernel_size=1)
+        self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False)
 
     def forward(self, x):
         x1, p1 = self.encoder_1(x)
@@ -112,6 +113,7 @@ class U_Net(nn.Module):
         d4 = self.decoder_4(d3, x1)
 
         output = self.output_layer(d4)
+        output = self.upsample(output)
 
         return output
 
