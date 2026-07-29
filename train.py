@@ -117,16 +117,18 @@ all_actuals = []
 with torch.no_grad():
     for inputs, targets in test_loader:
         outputs = model(inputs.to(config.device))
-        loss = criterion(outputs, targets.to(config.device))
+        # One-hot (N, C, H, W) targets -> class index (N, H, W) for CrossEntropyLoss
+        targets_idx = targets.argmax(dim=1) if targets.dim() == 4 else targets
+        loss = criterion(outputs, targets_idx.to(config.device).long())
         test_losses.append(loss.item())
-        all_predictions.extend(outputs.cpu().numpy().flatten())
-        all_actuals.extend(targets.cpu().numpy().flatten())
+        all_predictions.extend(outputs.argmax(dim=1).cpu().numpy().flatten())
+        all_actuals.extend(targets_idx.cpu().numpy().flatten())
 
 mean_test_loss = np.mean(test_losses)
 print(f"Test Loss: {mean_test_loss:.6f}")
 
-# Compute accuracy on flattened predictions
-predictions_binary = np.round(np.array(all_predictions))
+# Compute accuracy on flattened per-pixel class predictions
+predictions_binary = np.array(all_predictions)
 actuals_array = np.array(all_actuals)
 accuracy = np.mean(predictions_binary == actuals_array)
 print(f"Test Accuracy: {accuracy:.4f}")
@@ -135,6 +137,6 @@ print(f"Test Accuracy: {accuracy:.4f}")
 # =============================================================================
 # Save Model
 # =============================================================================
-print(f"\nSaving model to {config.model_track_path}...")
+print(f"\nSaving model to {config.model_detect_path}...")
 torch.save(model.state_dict(), config.model_detect_path)
 print("Model saved!")

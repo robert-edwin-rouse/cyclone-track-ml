@@ -100,6 +100,8 @@ class U_Net(nn.Module):
         self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False)
 
     def forward(self, x):
+        input_size = x.shape[2:]
+
         x1, p1 = self.encoder_1(x)
         x2, p2 = self.encoder_2(p1)
         x3, p3 = self.encoder_3(p2)
@@ -114,6 +116,13 @@ class U_Net(nn.Module):
 
         output = self.output_layer(d4)
         output = self.upsample(output)
+
+        # Pooling on odd input dimensions (e.g. 721 lat rows) truncates by a
+        # row/column on the way down; resize back to the exact input size.
+        if output.shape[2:] != input_size:
+            output = nn.functional.interpolate(output, size=input_size,
+                                                mode='bilinear',
+                                                align_corners=False)
 
         return output
 
@@ -154,10 +163,10 @@ class Trainer:
         for inputs, targets in self.train_loader:
             self.optimiser.zero_grad()
             outputs = self.model(inputs.to(config.device))
-            # Handle both single value and multi-value targets
-            if targets.dim() == 1:
-                targets = targets.unsqueeze(1)
-            loss = self.criterion(outputs, targets.to(config.device))
+            # One-hot (N, C, H, W) targets -> class index (N, H, W) for CrossEntropyLoss
+            if targets.dim() == 4:
+                targets = targets.argmax(dim=1)
+            loss = self.criterion(outputs, targets.to(config.device).long())
             loss.backward()
             self.optimiser.step()
             losses.append(loss.item())
@@ -172,10 +181,10 @@ class Trainer:
         losses, predictions, actuals = [], [], []
         for inputs, targets in self.val_loader:
             outputs = self.model(inputs.to(config.device))
-            # Handle both single value and multi-value targets
-            if targets.dim() == 1:
-                targets = targets.unsqueeze(1)
-            loss = self.criterion(outputs, targets.to(config.device))
+            # One-hot (N, C, H, W) targets -> class index (N, H, W) for CrossEntropyLoss
+            if targets.dim() == 4:
+                targets = targets.argmax(dim=1)
+            loss = self.criterion(outputs, targets.to(config.device).long())
             losses.append(loss.item())
 
             predictions.extend(outputs.cpu().numpy().flatten())

@@ -76,7 +76,7 @@ feature_array = xr.concat([pressure_array, sst_mask, sst],
 # =============================================================================
 # Load in IBTRACS data, define radii, and lifestage classifications
 # =============================================================================
-df = pd.read_csv('ibtracs.since1980.list.v04r01.csv',
+df = pd.read_csv(config.ibtracs_path,
                  usecols=['SID', 'ISO_TIME', 'LAT', 'LON', 'USA_STATUS',
                           'USA_WIND', 'USA_PRES', 'USA_SSHS', 'USA_R34_NE',
                           'USA_R34_SE', 'USA_R34_SW', 'USA_R34_NW'])
@@ -147,15 +147,12 @@ def latlon_to_pix(lat, lon, lat_max, lon_min, img_lat, img_lon, pixels):
     x = np.clip(x, 0, img_lon - 1)
     return x, y
 
-def cyclone_segmentation(cyclones, times, class_map):
+def cyclone_segmentation(cyclones, times, class_map, latitudes, longitudes):
     from dask import delayed
 
-    pixels = 1 / config.output_resolution
-    img_lat = int(abs(config.lat_lon[0] - config.lat_lon[2]) * pixels)
-    img_lon = int(abs(config.lat_lon[1] - config.lat_lon[3]) * pixels)
-
-    latitudes = np.linspace(lat_max, lat_min, img_lat)
-    longitudes = np.linspace(lon_min, lon_max, img_lon)
+    img_lat = latitudes.size
+    img_lon = longitudes.size
+    pixels = img_lon / abs(lon_max - lon_min)
 
     grouped = cyclones.groupby('ISO_TIME')
     groups_dict = {pd.Timestamp(ts): grp for ts, grp in grouped}
@@ -242,7 +239,9 @@ def cyclone_segmentation(cyclones, times, class_map):
     return mask_da
 
 
-storm_masks = cyclone_segmentation(cyclones, times, class_map)
+storm_masks = cyclone_segmentation(cyclones, times, class_map,
+                                   surface_array.latitude.values,
+                                   surface_array.longitude.values)
 
 
 # =============================================================================

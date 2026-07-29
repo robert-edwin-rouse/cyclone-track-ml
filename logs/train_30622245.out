@@ -1,0 +1,14 @@
+Loading train, valid, test datasets from zarr...
+Train dataset shape: (270, 721, 1440, 17)
+Valid dataset shape: (18, 721, 1440, 17)
+Test dataset shape: (72, 721, 1440, 17)
+
+Creating PyTorch DataLoaders...
+Train batches: 34
+Valid batches: 3
+Test batches: 9
+
+Initializing model...
+Model on device: cuda
+
+Training for 64 epochs...

@@ -12,8 +12,9 @@ import os
 # Project Initialisation
 # =============================================================================
 base_dir = os.path.dirname(os.path.abspath(__file__))
-data_dir = os.path.join(base_dir, "data")
-era5_data_dir = os.path.join(base_dir, "data", "era5")
+era5_data_dir = os.path.expanduser("~/rds/rds-inspire-tc-TqEGHMWTn8A/sg2147")
+data_dir = os.path.join(era5_data_dir, "zarr")
+ibtracs_path = os.path.join(era5_data_dir, "ibtracs.since1980.list.v04r01.csv")
 
 os.makedirs(data_dir, exist_ok=True)
 os.makedirs(era5_data_dir, exist_ok=True)
@@ -29,8 +30,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # =============================================================================
 lat_lon = [90, -180, -90, 180]
 
-years = [x for x in range(2000, 2025)]
-months = [x for x in range(1, 13)]
+years = [2025]
+months = [1, 2, 3]
 days = [x for x in range(1, 32)]
 hours = [6*x for x in range(0, 4)]
 
@@ -38,7 +39,7 @@ surface_dataset = "reanalysis-era5-single-levels"
 surface_variables = ["sea_surface_temperature",
                      "2m_temperature",]
 surface_var_codes = ["sst", "t2m"]
-surface_path = "era5_surface_data.nc"
+surface_path = os.path.join(era5_data_dir, "era5_surface_data.nc")
 
 pressure_dataset = "reanalysis-era5-pressure-levels"
 pressure_levels = [1000, 750, 500]
@@ -48,7 +49,7 @@ pressure_variables = ["relative_humidity",
                       "v_component_of_wind",
                       "vorticity"]
 pressure_var_codes = ["r", "t", "u", "v", "vo"]
-pressure_path = "era5_pressure_data.nc"
+pressure_path = os.path.join(era5_data_dir, "era5_pressure_data.nc")
 
 
 # =============================================================================
@@ -62,7 +63,6 @@ lifestages = ['Storm - Nondeveloping',
               'Cyclolysis',
               'Cyclogenesis',
               'Active Cyclone',]
-output_resolution = 0.125
 
 train_set_percent = 0.75
 valid_set_percent = 0.05

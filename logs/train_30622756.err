@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/home/sg2147/tc-track/cyclone-track-ml/train.py", line 103, in <module>
+    train_losses, val_losses, val_predictions = trainer.train(config.epochs)
+  File "/home/sg2147/tc-track/cyclone-track-ml/model.py", line 189, in train
+    train_loss = self.training_pass()
+  File "/home/sg2147/tc-track/cyclone-track-ml/model.py", line 158, in training_pass
+    loss = self.criterion(outputs, targets.to(config.device).long())
+  File "/home/sg2147/tc-track/cyclone-track-ml/venv/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/sg2147/tc-track/cyclone-track-ml/venv/lib/python3.9/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/sg2147/tc-track/cyclone-track-ml/venv/lib/python3.9/site-packages/torch/nn/modules/loss.py", line 1310, in forward
+    return F.cross_entropy(
+  File "/home/sg2147/tc-track/cyclone-track-ml/venv/lib/python3.9/site-packages/torch/nn/functional.py", line 3462, in cross_entropy
+    return torch._C._nn.cross_entropy_loss(
+RuntimeError: input and target batch or spatial sizes don't match: target [8, 1440, 2880], input [8, 5, 720, 1440]
