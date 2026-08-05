@@ -72,7 +72,7 @@ train_data_zarr = 'train_dataset.zarr'
 val_data_zarr = 'val_dataset.zarr'
 test_data_zarr = 'test_dataset.zarr'
 
-
+normalisation_path = "normalisation_parameters.nc"
 
 # =============================================================================
 # Training & Model Configuration

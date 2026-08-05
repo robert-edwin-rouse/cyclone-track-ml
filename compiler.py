@@ -407,7 +407,7 @@ def run_compiler():
     # Save normalization metadata
     os.makedirs(config.data_dir, exist_ok=True)
     norm_ds = xr.Dataset({'mean': mean_val, 'min': min_val, 'max': max_val, 'range': range_val})
-    norm_ds.to_netcdf(os.path.join(config.data_dir, "norm_params.nc"))
+    norm_ds.to_netcdf(os.path.join(config.data_dir, config.normalisation_path))
 
     # =========================================================================
     # 7. Materializing Sampled Split Datasets
