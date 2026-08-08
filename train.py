@@ -114,10 +114,20 @@ test_loader = DataLoader(
 # =============================================================================
 # Initialize Model & Multi-GPU Parallelization (nn.DataParallel)
 # =============================================================================
-print("\nInitializing model...")
-base_model = U_Net()
-base_model.apply(init_weights)
-base_model.to(config.device)
+load_path = config.model_detect_path
+try:
+    print(f"Loading pretrained model from {load_path}...")
+    jit_module = torch.jit.load(load_path, map_location=config.device)
+    base_model = U_Net()
+    base_model.load_state_dict(jit_module.state_dict())
+    base_model.to(config.device)
+except:
+    print("\nLoading model failed...")
+    print("\nInitializing new model...")
+    base_model = U_Net()
+    base_model.apply(init_weights)
+    base_model.to(config.device)
+
 
 # Wrap model with DataParallel if multiple GPUs are available
 if torch.cuda.is_available() and torch.cuda.device_count() > 1:
@@ -208,7 +218,7 @@ print(f"Test Accuracy: {accuracy:.4f}")
 # =============================================================================
 # Save Model Weights
 # =============================================================================
-save_path = getattr(config, 'model_detect_path', os.path.join(config.data_dir, 'unet_cyclone.pth'))
+save_path = config.model_detect_path
 print(f"\nSaving model to {save_path}...")
 
 model_to_save = model.module if isinstance(model, nn.DataParallel) else model
@@ -217,7 +227,7 @@ model_to_save.eval()
 sample_inputs, _ = test_dataset[0]
 lat, lon, x_var = sample_inputs.shape
 dummy_input = torch.randn(1, lat, lon, x_var, device=config.device)
-
+ 
 with torch.no_grad():
     traced_model = torch.jit.trace(model_to_save, dummy_input)
 
